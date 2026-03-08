@@ -138,6 +138,7 @@ background:var(--green-strong);
 
 <input id="searchTag" placeholder="#AXI">
 <button onclick="searchTag()">검색</button>
+<button onclick="loadNotes()">전체보기</button>
 
 </section>
 
@@ -145,8 +146,12 @@ background:var(--green-strong);
 <section>
 
 <h2>📑 노트 목록</h2>
-
 <div id="noteList" class="list"></div>
+
+<h2>📄 노트 보기</h2>
+<div id="noteViewer" class="list">
+노트를 선택하면 내용이 표시됩니다.
+</div>
 
 </section>
 
@@ -195,7 +200,7 @@ background:var(--green-strong);
 /* Firebase 설정 */
 
 const firebaseConfig = {
-  apiKey: "AIzaSyCNaPX_L_TsFPQZaC0eVZcQZZUnm47qg-Y",
+  apiKey: "YOUR_KEY",
   authDomain: "mung-lab.firebaseapp.com",
   projectId: "mung-lab",
   storageBucket: "mung-lab.firebasestorage.app",
@@ -229,13 +234,11 @@ content,
 date:new Date()
 })
 
-console.log("노트 저장 성공")
-
 loadNotes()
 
 }catch(e){
 
-console.error("저장 실패",e)
+console.error(e)
 
 }
 
@@ -243,7 +246,34 @@ console.error("저장 실패",e)
 
 
 
-/* 노트 불러오기 */
+/* 노트 보기 */
+
+function showNote(note){
+
+const viewer=document.getElementById("noteViewer")
+
+let tagHTML=""
+
+if(note.tags){
+
+note.tags.split(" ").forEach(t=>{
+tagHTML+=`<span class="tag">${t}</span>`
+})
+
+}
+
+viewer.innerHTML=`
+<h3>${note.title}</h3>
+<div>${tagHTML}</div>
+<hr>
+<p style="white-space:pre-line">${note.content}</p>
+`
+
+}
+
+
+
+/* 전체 노트 불러오기 */
 
 async function loadNotes(){
 
@@ -262,25 +292,10 @@ const d=doc.data()
 const div=document.createElement("div")
 
 div.className="noteItem"
-
-let tagHTML=""
-
-if(d.tags){
-
-d.tags.split(" ").forEach(t=>{
-tagHTML+=`<span class="tag">${t}</span>`
-})
-
-}
-
-div.innerHTML=tagHTML+" "+d.title
+div.innerHTML=d.title
 
 div.onclick=()=>{
-
-document.getElementById("noteTitle").value=d.title
-document.getElementById("noteTags").value=d.tags
-document.getElementById("noteContent").value=d.content
-
+showNote(d)
 }
 
 list.appendChild(div)
@@ -312,8 +327,11 @@ if(d.tags && d.tags.includes(tag)){
 const div=document.createElement("div")
 
 div.className="noteItem"
+div.innerHTML=d.title
 
-div.innerText=d.title
+div.onclick=()=>{
+showNote(d)
+}
 
 list.appendChild(div)
 
@@ -325,11 +343,12 @@ list.appendChild(div)
 
 
 
-/* 공부 기록 */
+/* 공부 시간 */
 
 function addStudy(){
 
 const input=document.getElementById("studyInput")
+
 const v=input.value
 
 if(!v) return
@@ -382,6 +401,7 @@ function drop(e){
 e.preventDefault()
 
 const id=e.dataTransfer.getData("id")
+
 const card=document.getElementById(id)
 
 const column=e.target.closest(".column")
@@ -404,6 +424,7 @@ localStorage.setItem("kanban",JSON.stringify(cards))
 function addCard(btn){
 
 const text=prompt("내용")
+
 if(!text) return
 
 const column=btn.parentElement.dataset.col
