@@ -297,19 +297,28 @@ await db.collection("growth").doc(userId).set({case:v},{merge:true})
 
 async function loadData(){
 
+try{
+
 const doc=await db.collection("growth").doc(userId).get()
 
-if(!doc.exists) return
+if(!doc || !doc.exists){
+console.log("저장된 데이터 없음")
+return
+}
 
-const data=doc.data()
+const data=doc.data() || {}
 
-studyData=data.studyData||[]
+studyData=data.studyData || []
 
 if(data.wiki) document.getElementById("wiki").value=data.wiki
 if(data.case) document.getElementById("case").value=data.case
 
 renderChart()
 updateProgress()
+
+}catch(err){
+console.log("데이터 로드 실패:",err)
+}
 
 }
 
@@ -321,3 +330,4 @@ loadData()
 
 </body>
 </html>
+
