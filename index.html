@@ -231,7 +231,15 @@ content,
 date:new Date()
 })
 
-  loadNotes()
+console.log("노트 저장 성공")
+
+loadNotes()
+
+}catch(e){
+
+console.error("저장 실패",e)
+
+}
 
 }
 
@@ -384,20 +392,20 @@ const text=prompt("내용")
 
 if(!text) return
 
-const c=document.createElement("div")
+const column=btn.parentElement.dataset.col
 
-c.className="card"
+const card={
+text:text,
+col:column
+}
 
-c.innerText=text
+let cards=JSON.parse(localStorage.getItem("kanban")||"[]")
 
-c.draggable=true
+cards.push(card)
 
-c.id="card"+Math.random()
+localStorage.setItem("kanban",JSON.stringify(cards))
 
-c.ondragstart=drag
-c.ondblclick=deleteCard
-
-btn.parentElement.appendChild(c)
+renderKanban()
 
 }
 
@@ -405,20 +413,52 @@ function deleteCard(e){
 
 if(!confirm("카드를 삭제할까요?")) return
 
-e.target.remove()
+const text=e.target.innerText
+
+let cards=JSON.parse(localStorage.getItem("kanban")||"[]")
+
+cards=cards.filter(c=>c.text!==text)
+
+localStorage.setItem("kanban",JSON.stringify(cards))
+
+renderKanban()
 
 }
 
+function renderKanban(){
+
+const cards=JSON.parse(localStorage.getItem("kanban")||"[]")
+
+document.querySelectorAll(".card").forEach(c=>c.remove())
+
+cards.forEach(card=>{
+
+const column=document.querySelector(`[data-col="${card.col}"]`)
+
+const c=document.createElement("div")
+
+c.className="card"
+c.innerText=card.text
+c.ondblclick=deleteCard
+
+column.appendChild(c)
+
+})
+
+}
+  
 loadNotes()
 
 studyData=JSON.parse(localStorage.getItem("studyData")||"[]")
 
 renderChart()
-
+renderKanban()
+  
 </script>
 
 </body>
 </html>
+
 
 
 
