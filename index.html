@@ -1,0 +1,323 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>멍의 Inspection Master 성장 시스템 v3</title>
+
+<!-- Firebase SDK -->
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+
+<style>
+:root{
+--pink:#ffd6e7;
+--green:#dff5e1;
+--pink-strong:#ff9ec5;
+--green-strong:#8ed39a;
+--bg:#fffafc;
+}
+
+body{font-family:Arial,Helvetica,sans-serif;margin:0;background:var(--bg)}
+
+header{background:linear-gradient(90deg,var(--pink),var(--green));padding:18px;font-size:22px;font-weight:bold;text-align:center}
+
+section{padding:16px}
+
+.dashboard{display:flex;gap:20px;flex-wrap:wrap}
+
+.widget{background:white;padding:14px;border-radius:12px;box-shadow:0 4px 10px rgba(0,0,0,0.08);min-width:240px}
+
+.progressbar{height:14px;background:#eee;border-radius:10px;overflow:hidden;margin-top:6px}
+
+.progress{height:100%;background:linear-gradient(90deg,var(--pink-strong),var(--green-strong));width:0%}
+
+.container{display:flex;gap:16px;overflow-x:auto}
+
+.column{background:white;border-radius:12px;min-width:240px;padding:10px;box-shadow:0 4px 10px rgba(0,0,0,0.08)}
+
+.column h3{text-align:center;background:var(--green);padding:6px;border-radius:6px}
+
+.card{background:var(--pink);padding:8px;margin:8px 0;border-radius:6px;cursor:grab;font-size:14px}
+
+.add{margin-top:6px;width:100%;border:none;padding:6px;border-radius:6px;background:var(--green);cursor:pointer}
+
+.chart{height:120px;display:flex;align-items:flex-end;gap:6px;margin-top:10px}
+
+.bar{width:14px;background:var(--green-strong);border-radius:4px 4px 0 0}
+
+textarea{width:100%;height:140px;border-radius:8px;padding:8px}
+
+.goal{background:white;padding:10px;border-radius:10px;margin-bottom:10px;box-shadow:0 3px 8px rgba(0,0,0,0.08)}
+
+.roadmap{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-top:10px}
+
+.roadbox{background:white;border-radius:10px;padding:8px;text-align:center;box-shadow:0 3px 8px rgba(0,0,0,0.08);font-size:13px}
+
+button{cursor:pointer}
+
+</style>
+</head>
+<body>
+
+<header>🌸 멍의 Inspection Master 성장 시스템 v3 (PC / 모바일 동기화) 🌱</header>
+
+<section>
+<h2>📊 성장 대시보드</h2>
+<div class="dashboard">
+
+<div class="widget">
+<strong>2년 로드맵 진행률</strong>
+<div class="progressbar"><div class="progress" id="totalProgress"></div></div>
+<span id="totalText">0%</span>
+</div>
+
+<div class="widget">
+<strong>이번 달 진행률</strong>
+<div class="progressbar"><div class="progress" id="monthProgress"></div></div>
+<span id="monthText">0%</span>
+</div>
+
+<div class="widget">
+<strong>주간 공부 시간</strong><br>
+<input type="number" id="studyInput" placeholder="시간">
+<button onclick="addStudy()">기록</button>
+<div class="chart" id="chart"></div>
+</div>
+
+</div>
+</section>
+
+<section>
+<h2>🎯 자동 생성 목표</h2>
+<div class="goal"><strong>이번 달 목표</strong><div id="monthGoal"></div></div>
+<div class="goal"><strong>이번 주 목표</strong><div id="weekGoal"></div></div>
+</section>
+
+<section>
+<h2>🧭 2년 로드맵</h2>
+<div class="roadmap" id="roadmap"></div>
+</section>
+
+<section>
+<h2>🧠 칸반 보드</h2>
+<div class="container" id="board">
+
+<div class="column" data-col="backlog" ondrop="drop(event)" ondragover="allowDrop(event)">
+<h3>BACKLOG</h3>
+<button class="add" onclick="addCard(this)">+ 추가</button>
+</div>
+
+<div class="column" data-col="month" ondrop="drop(event)" ondragover="allowDrop(event)">
+<h3>THIS MONTH</h3>
+<button class="add" onclick="addCard(this)">+ 추가</button>
+</div>
+
+<div class="column" data-col="doing" ondrop="drop(event)" ondragover="allowDrop(event)">
+<h3>DOING</h3>
+<button class="add" onclick="addCard(this)">+ 추가</button>
+</div>
+
+<div class="column" data-col="verify" ondrop="drop(event)" ondragover="allowDrop(event)">
+<h3>VERIFY</h3>
+<button class="add" onclick="addCard(this)">+ 추가</button>
+</div>
+
+<div class="column" data-col="asset" ondrop="drop(event)" ondragover="allowDrop(event)">
+<h3>ASSET</h3>
+<button class="add" onclick="addCard(this)">+ 추가</button>
+</div>
+
+</div>
+</section>
+
+<section>
+<h2>📚 지식 위키</h2>
+<textarea id="wiki" placeholder="배운 것 / 시스템 이해 / 아이디어"></textarea>
+<button onclick="saveWiki()">저장</button>
+</section>
+
+<section>
+<h2>🧩 문제 해결 케이스 DB</h2>
+<textarea id="case" placeholder="문제 → 원인 → 해결"></textarea>
+<button onclick="saveCase()">저장</button>
+</section>
+
+<script>
+
+/* ---------------- Firebase 설정 ---------------- */
+
+const firebaseConfig = {
+apiKey: "YOUR_API_KEY",
+authDomain: "YOUR_PROJECT.firebaseapp.com",
+projectId: "YOUR_PROJECT_ID",
+storageBucket: "YOUR_PROJECT.appspot.com",
+messagingSenderId: "XXXX",
+appId: "XXXX"
+}
+
+firebase.initializeApp(firebaseConfig)
+const db = firebase.firestore()
+const userId = "mung-growth"
+
+/* ---------------- 로드맵 ---------------- */
+
+const roadmapData=[
+"SMT 공정","SPI 검사","AOI 검사","AXI 검사",
+"Defect 이해","Inspection Data","DB 구조","Review Workflow",
+"SPC 기초","Cp/Cpk","Control Chart","데이터 분석",
+"Industrial SW","UI 설계","MES 연동","장비 데이터",
+"문제 해결 사례","시스템 분석","지식 정리","핸드북 제작",
+"전문성 강화","케이스 축적","도메인 정리","Inspection Master"
+]
+
+function renderRoadmap(){
+const box=document.getElementById("roadmap")
+roadmapData.forEach((m,i)=>{
+const d=document.createElement("div")
+d.className="roadbox"
+d.innerText=`${i+1}M\n${m}`
+box.appendChild(d)
+})
+}
+
+/* ---------------- 목표 생성 ---------------- */
+
+function generateGoals(){
+const start=new Date()
+const now=new Date()
+
+const monthIndex=(now.getFullYear()-start.getFullYear())*12+now.getMonth()-start.getMonth()
+
+const monthTopic=roadmapData[monthIndex]||"복습 / 확장"
+
+document.getElementById("monthGoal").innerText=`${monthTopic} 이해 + 문서 4개 작성`
+
+document.getElementById("weekGoal").innerText=`${monthTopic} 세부 조사 + 회사 시스템 연결`
+}
+
+/* ---------------- 공부시간 ---------------- */
+
+let studyData=[]
+
+async function addStudy(){
+const v=document.getElementById("studyInput").value
+if(!v)return
+
+studyData.push(Number(v))
+
+await db.collection("growth").doc(userId).set({studyData},{merge:true})
+
+renderChart()
+updateProgress()
+}
+
+function renderChart(){
+const chart=document.getElementById("chart")
+chart.innerHTML=""
+
+studyData.slice(-12).forEach(h=>{
+const b=document.createElement("div")
+b.className="bar"
+b.style.height=(h*10)+"px"
+chart.appendChild(b)
+})
+}
+
+function updateProgress(){
+const total=studyData.reduce((a,b)=>a+b,0)
+const totalPercent=Math.min(100,Math.floor(total/400*100))
+
+document.getElementById("totalProgress").style.width=totalPercent+"%"
+document.getElementById("totalText").innerText=totalPercent+"%"
+
+const monthHours=studyData.slice(-4).reduce((a,b)=>a+b,0)
+const monthPercent=Math.min(100,Math.floor(monthHours/40*100))
+
+document.getElementById("monthProgress").style.width=monthPercent+"%"
+document.getElementById("monthText").innerText=monthPercent+"%"
+}
+
+/* ---------------- 칸반 ---------------- */
+
+function allowDrop(e){e.preventDefault()}
+
+function drag(e){e.dataTransfer.setData("id",e.target.id)}
+
+function drop(e){
+e.preventDefault()
+const id=e.dataTransfer.getData("id")
+const card=document.getElementById(id)
+e.target.closest(".column").insertBefore(card,e.target.closest(".column").querySelector(".add"))
+saveBoard()
+}
+
+async function saveBoard(){
+const data={}
+
+ document.querySelectorAll(".column").forEach(col=>{
+const key=col.dataset.col
+if(!key)return
+const cards=[...col.querySelectorAll(".card")].map(c=>c.textContent)
+data[key]=cards
+})
+
+await db.collection("growth").doc(userId).set({kanban:data},{merge:true})
+}
+
+function addCard(btn){
+const text=prompt("카드 내용")
+if(!text)return
+
+const c=document.createElement("div")
+c.className="card"
+c.innerText=text
+c.draggable=true
+c.id="card"+Math.random()
+c.ondragstart=drag
+
+btn.parentElement.insertBefore(c,btn)
+
+saveBoard()
+}
+
+/* ---------------- 위키 / 케이스 ---------------- */
+
+async function saveWiki(){
+const v=document.getElementById("wiki").value
+await db.collection("growth").doc(userId).set({wiki:v},{merge:true})
+}
+
+async function saveCase(){
+const v=document.getElementById("case").value
+await db.collection("growth").doc(userId).set({case:v},{merge:true})
+}
+
+/* ---------------- 데이터 로드 ---------------- */
+
+async function loadData(){
+
+const doc=await db.collection("growth").doc(userId).get()
+
+if(!doc.exists) return
+
+const data=doc.data()
+
+studyData=data.studyData||[]
+
+if(data.wiki) document.getElementById("wiki").value=data.wiki
+if(data.case) document.getElementById("case").value=data.case
+
+renderChart()
+updateProgress()
+
+}
+
+renderRoadmap()
+generateGoals()
+loadData()
+
+</script>
+
+</body>
+</html>
