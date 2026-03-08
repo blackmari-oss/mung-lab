@@ -275,10 +275,22 @@ c.innerText=text
 c.draggable=true
 c.id="card"+Math.random()
 c.ondragstart=drag
-
+c.ondblclick=deleteCard
+ 
 btn.parentElement.insertBefore(c,btn)
 
 saveBoard()
+}
+
+function deleteCard(e){
+
+if(!confirm("이 카드를 삭제할까요?")) return
+
+const card=e.target
+card.remove()
+
+saveBoard()
+
 }
 
 /* ---------------- 위키 / 케이스 ---------------- */
@@ -330,4 +342,5 @@ loadData()
 
 </body>
 </html>
+
 
