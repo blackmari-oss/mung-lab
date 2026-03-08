@@ -218,6 +218,8 @@ let studyData=[]
 
 async function saveNote(){
 
+try{
+
 const title=document.getElementById("noteTitle").value
 const tags=document.getElementById("noteTags").value
 const content=document.getElementById("noteContent").value
@@ -389,7 +391,6 @@ e.target.closest(".column").appendChild(card)
 function addCard(btn){
 
 const text=prompt("내용")
-
 if(!text) return
 
 const column=btn.parentElement.dataset.col
@@ -458,6 +459,7 @@ renderKanban()
 
 </body>
 </html>
+
 
 
 
