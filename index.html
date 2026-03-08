@@ -124,9 +124,7 @@ background:var(--green-strong);
 <h2>📚 노트 작성</h2>
 
 <input id="noteTitle" placeholder="노트 제목">
-
 <input id="noteTags" placeholder="태그 입력 (#AXI #SPC 등)">
-
 <textarea id="noteContent" placeholder="지식 기록 / 시스템 분석"></textarea>
 
 <button onclick="saveNote()">노트 저장</button>
@@ -139,7 +137,6 @@ background:var(--green-strong);
 <h2>🔎 태그 검색</h2>
 
 <input id="searchTag" placeholder="#AXI">
-
 <button onclick="searchTag()">검색</button>
 
 </section>
@@ -159,7 +156,6 @@ background:var(--green-strong);
 <h2>📊 공부 시간</h2>
 
 <input id="studyInput" type="number" placeholder="시간">
-
 <button onclick="addStudy()">기록</button>
 
 <div class="chart" id="chart"></div>
@@ -196,9 +192,8 @@ background:var(--green-strong);
 
 <script>
 
+/* Firebase 설정 */
 
-/* ---------------- Firebase 설정 ---------------- */
-// Your web app's Firebase configuration
 const firebaseConfig = {
   apiKey: "AIzaSyCNaPX_L_TsFPQZaC0eVZcQZZUnm47qg-Y",
   authDomain: "mung-lab.firebaseapp.com",
@@ -210,21 +205,22 @@ const firebaseConfig = {
 
 firebase.initializeApp(firebaseConfig)
 const db = firebase.firestore()
-const userId = "mung-lab"
 
 
 let studyData=[]
 
 
-async function saveNote(){
+/* 노트 저장 */
 
-try{
+async function saveNote(){
 
 const title=document.getElementById("noteTitle").value
 const tags=document.getElementById("noteTags").value
 const content=document.getElementById("noteContent").value
 
 if(!title) return
+
+try{
 
 await db.collection("notes").add({
 title,
@@ -245,6 +241,9 @@ console.error("저장 실패",e)
 
 }
 
+
+
+/* 노트 불러오기 */
 
 async function loadNotes(){
 
@@ -292,6 +291,8 @@ list.appendChild(div)
 
 
 
+/* 태그 검색 */
+
 async function searchTag(){
 
 const tag=document.getElementById("searchTag").value
@@ -324,15 +325,20 @@ list.appendChild(div)
 
 
 
+/* 공부 기록 */
+
 function addStudy(){
 
-const v=document.getElementById("studyInput").value
+const input=document.getElementById("studyInput")
+const v=input.value
 
 if(!v) return
 
 studyData.push(Number(v))
 
 localStorage.setItem("studyData",JSON.stringify(studyData))
+
+input.value=""
 
 renderChart()
 
@@ -361,29 +367,36 @@ chart.appendChild(b)
 
 
 
+/* Kanban */
+
 function allowDrop(e){
-
 e.preventDefault()
-
 }
-
 
 function drag(e){
-
 e.dataTransfer.setData("id",e.target.id)
-
 }
-
 
 function drop(e){
 
 e.preventDefault()
 
 const id=e.dataTransfer.getData("id")
-
 const card=document.getElementById(id)
 
-e.target.closest(".column").appendChild(card)
+const column=e.target.closest(".column")
+
+column.appendChild(card)
+
+let cards=JSON.parse(localStorage.getItem("kanban")||"[]")
+
+cards.forEach(c=>{
+if(c.id==id){
+c.col=column.dataset.col
+}
+})
+
+localStorage.setItem("kanban",JSON.stringify(cards))
 
 }
 
@@ -396,6 +409,7 @@ if(!text) return
 const column=btn.parentElement.dataset.col
 
 const card={
+id:"card_"+Date.now(),
 text:text,
 col:column
 }
@@ -410,21 +424,23 @@ renderKanban()
 
 }
 
+
 function deleteCard(e){
 
 if(!confirm("카드를 삭제할까요?")) return
 
-const text=e.target.innerText
+const id=e.target.id
 
 let cards=JSON.parse(localStorage.getItem("kanban")||"[]")
 
-cards=cards.filter(c=>c.text!==text)
+cards=cards.filter(c=>c.id!==id)
 
 localStorage.setItem("kanban",JSON.stringify(cards))
 
 renderKanban()
 
 }
+
 
 function renderKanban(){
 
@@ -440,6 +456,9 @@ const c=document.createElement("div")
 
 c.className="card"
 c.innerText=card.text
+c.id=card.id
+c.draggable=true
+c.ondragstart=drag
 c.ondblclick=deleteCard
 
 column.appendChild(c)
@@ -447,20 +466,18 @@ column.appendChild(c)
 })
 
 }
-  
+
+
+/* 초기 로드 */
+
 loadNotes()
 
 studyData=JSON.parse(localStorage.getItem("studyData")||"[]")
 
 renderChart()
 renderKanban()
-  
+
 </script>
 
 </body>
 </html>
-
-
-
-
-
