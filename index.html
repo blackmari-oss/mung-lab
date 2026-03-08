@@ -117,9 +117,35 @@ background:var(--green-strong);
 
 <body>
 
-<header>🌸 멍 Knowledge System 🌱</header>
+<header>🌸 Inspection Master 🌱</header>
 
 <section>
+
+<section>
+
+<h2>🧠 칸반 보드</h2>
+
+<div class="container">
+
+<div class="column" data-col="todo" ondrop="drop(event)" ondragover="allowDrop(event)">
+<h3>TODO</h3>
+<button onclick="addCard(this)">+</button>
+</div>
+
+<div class="column" data-col="doing" ondrop="drop(event)" ondragover="allowDrop(event)">
+<h3>DOING</h3>
+<button onclick="addCard(this)">+</button>
+</div>
+
+<div class="column" data-col="done" ondrop="drop(event)" ondragover="allowDrop(event)">
+<h3>DONE</h3>
+<button onclick="addCard(this)">+</button>
+</div>
+
+</div>
+
+</section>
+  
 
 <h2>📚 노트 작성</h2>
 
@@ -166,34 +192,6 @@ background:var(--green-strong);
 <div class="chart" id="chart"></div>
 
 </section>
-
-
-<section>
-
-<h2>🧠 칸반 보드</h2>
-
-<div class="container">
-
-<div class="column" data-col="todo" ondrop="drop(event)" ondragover="allowDrop(event)">
-<h3>TODO</h3>
-<button onclick="addCard(this)">+</button>
-</div>
-
-<div class="column" data-col="doing" ondrop="drop(event)" ondragover="allowDrop(event)">
-<h3>DOING</h3>
-<button onclick="addCard(this)">+</button>
-</div>
-
-<div class="column" data-col="done" ondrop="drop(event)" ondragover="allowDrop(event)">
-<h3>DONE</h3>
-<button onclick="addCard(this)">+</button>
-</div>
-
-</div>
-
-</section>
-
-
 
 <script>
 
@@ -502,3 +500,4 @@ renderKanban()
 
 </body>
 </html>
+
