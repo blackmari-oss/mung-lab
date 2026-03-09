@@ -49,9 +49,9 @@ height:150px;
 }
 
 button{
-padding:8px 12px;
+padding:6px 10px;
 border:none;
-border-radius:8px;
+border-radius:6px;
 background:var(--green);
 cursor:pointer;
 }
@@ -65,9 +65,15 @@ box-shadow:0 3px 8px rgba(0,0,0,0.08);
 }
 
 .noteItem{
+display:flex;
+justify-content:space-between;
+align-items:center;
 padding:6px;
-cursor:pointer;
 border-bottom:1px solid #eee;
+}
+
+.noteTitle{
+cursor:pointer;
 }
 
 .tag{
@@ -117,41 +123,15 @@ background:var(--green-strong);
 
 <body>
 
-<header>🌸 Inspection Master 🌱</header>
+<header>🌸 Knowledge System 🌱</header>
 
 <section>
-
-<section>
-
-<h2>🧠 칸반 보드</h2>
-
-<div class="container">
-
-<div class="column" data-col="todo" ondrop="drop(event)" ondragover="allowDrop(event)">
-<h3>TODO</h3>
-<button onclick="addCard(this)">+</button>
-</div>
-
-<div class="column" data-col="doing" ondrop="drop(event)" ondragover="allowDrop(event)">
-<h3>DOING</h3>
-<button onclick="addCard(this)">+</button>
-</div>
-
-<div class="column" data-col="done" ondrop="drop(event)" ondragover="allowDrop(event)">
-<h3>DONE</h3>
-<button onclick="addCard(this)">+</button>
-</div>
-
-</div>
-
-</section>
-  
 
 <h2>📚 노트 작성</h2>
 
 <input id="noteTitle" placeholder="노트 제목">
-<input id="noteTags" placeholder="태그 입력 (#AXI #SPC 등)">
-<textarea id="noteContent" placeholder="지식 기록 / 시스템 분석"></textarea>
+<input id="noteTags" placeholder="태그 입력 (#AXI #SPC)">
+<textarea id="noteContent" placeholder="지식 기록"></textarea>
 
 <button onclick="saveNote()">노트 저장</button>
 
@@ -184,21 +164,36 @@ background:var(--green-strong);
 
 <section>
 
-<h2>📊 공부 시간</h2>
+<h2>🌸 칸반 보드</h2>
 
-<input id="studyInput" type="number" placeholder="시간">
-<button onclick="addStudy()">기록</button>
+<div class="container">
 
-<div class="chart" id="chart"></div>
+<div class="column" data-col="todo" ondrop="drop(event)" ondragover="allowDrop(event)">
+<h3>TODO</h3>
+<button onclick="addCard('todo')">+</button>
+</div>
+
+<div class="column" data-col="doing" ondrop="drop(event)" ondragover="allowDrop(event)">
+<h3>DOING</h3>
+<button onclick="addCard('doing')">+</button>
+</div>
+
+<div class="column" data-col="done" ondrop="drop(event)" ondragover="allowDrop(event)">
+<h3>DONE</h3>
+<button onclick="addCard('done')">+</button>
+</div>
+
+</div>
 
 </section>
+
 
 <script>
 
 /* Firebase 설정 */
 
 const firebaseConfig = {
-  apiKey: "YOUR_KEY",
+  apiKey: "YOUR_API_KEY",
   authDomain: "mung-lab.firebaseapp.com",
   projectId: "mung-lab",
   storageBucket: "mung-lab.firebasestorage.app",
@@ -210,10 +205,7 @@ firebase.initializeApp(firebaseConfig)
 const db = firebase.firestore()
 
 
-let studyData=[]
-
-
-/* 노트 저장 */
+/* ================= 노트 ================= */
 
 async function saveNote(){
 
@@ -222,8 +214,6 @@ const tags=document.getElementById("noteTags").value
 const content=document.getElementById("noteContent").value
 
 if(!title) return
-
-try{
 
 await db.collection("notes").add({
 title,
@@ -234,21 +224,10 @@ date:new Date()
 
 loadNotes()
 
-}catch(e){
-
-console.error(e)
-
 }
 
-}
-
-
-
-/* 노트 보기 */
 
 function showNote(note){
-
-const viewer=document.getElementById("noteViewer")
 
 let tagHTML=""
 
@@ -260,7 +239,7 @@ tagHTML+=`<span class="tag">${t}</span>`
 
 }
 
-viewer.innerHTML=`
+document.getElementById("noteViewer").innerHTML=`
 <h3>${note.title}</h3>
 <div>${tagHTML}</div>
 <hr>
@@ -270,13 +249,20 @@ viewer.innerHTML=`
 }
 
 
+async function deleteNote(id){
 
-/* 전체 노트 불러오기 */
+if(!confirm("노트를 삭제할까요?")) return
+
+await db.collection("notes").doc(id).delete()
+
+loadNotes()
+
+}
+
 
 async function loadNotes(){
 
 const list=document.getElementById("noteList")
-
 list.innerHTML=""
 
 const snapshot=await db.collection("notes")
@@ -288,13 +274,19 @@ snapshot.forEach(doc=>{
 const d=doc.data()
 
 const div=document.createElement("div")
-
 div.className="noteItem"
-div.innerHTML=d.title
 
-div.onclick=()=>{
-showNote(d)
-}
+const title=document.createElement("span")
+title.className="noteTitle"
+title.innerText=d.title
+title.onclick=()=>showNote(d)
+
+const del=document.createElement("button")
+del.innerText="삭제"
+del.onclick=()=>deleteNote(doc.id)
+
+div.appendChild(title)
+div.appendChild(del)
 
 list.appendChild(div)
 
@@ -303,15 +295,11 @@ list.appendChild(div)
 }
 
 
-
-/* 태그 검색 */
-
 async function searchTag(){
 
 const tag=document.getElementById("searchTag").value
 
 const list=document.getElementById("noteList")
-
 list.innerHTML=""
 
 const snapshot=await db.collection("notes").get()
@@ -323,13 +311,18 @@ const d=doc.data()
 if(d.tags && d.tags.includes(tag)){
 
 const div=document.createElement("div")
-
 div.className="noteItem"
-div.innerHTML=d.title
 
-div.onclick=()=>{
-showNote(d)
-}
+const title=document.createElement("span")
+title.innerText=d.title
+title.onclick=()=>showNote(d)
+
+const del=document.createElement("button")
+del.innerText="삭제"
+del.onclick=()=>deleteNote(doc.id)
+
+div.appendChild(title)
+div.appendChild(del)
 
 list.appendChild(div)
 
@@ -340,51 +333,7 @@ list.appendChild(div)
 }
 
 
-
-/* 공부 시간 */
-
-function addStudy(){
-
-const input=document.getElementById("studyInput")
-
-const v=input.value
-
-if(!v) return
-
-studyData.push(Number(v))
-
-localStorage.setItem("studyData",JSON.stringify(studyData))
-
-input.value=""
-
-renderChart()
-
-}
-
-
-function renderChart(){
-
-const chart=document.getElementById("chart")
-
-chart.innerHTML=""
-
-studyData.slice(-12).forEach(h=>{
-
-const b=document.createElement("div")
-
-b.className="bar"
-
-b.style.height=(h*10)+"px"
-
-chart.appendChild(b)
-
-})
-
-}
-
-
-
-/* Kanban */
+/* ================= 칸반 ================= */
 
 function allowDrop(e){
 e.preventDefault()
@@ -400,87 +349,67 @@ e.preventDefault()
 
 const id=e.dataTransfer.getData("id")
 
-const card=document.getElementById(id)
+const column=e.target.closest(".column").dataset.col
 
-const column=e.target.closest(".column")
-
-column.appendChild(card)
-
-let cards=JSON.parse(localStorage.getItem("kanban")||"[]")
-
-cards.forEach(c=>{
-if(c.id==id){
-c.col=column.dataset.col
-}
+db.collection("kanban").doc(id).update({
+col:column
 })
 
-localStorage.setItem("kanban",JSON.stringify(cards))
+loadKanban()
 
 }
 
 
-function addCard(btn){
+async function addCard(col){
 
 const text=prompt("내용")
-
 if(!text) return
 
-const column=btn.parentElement.dataset.col
+await db.collection("kanban").add({
+text,
+col,
+date:new Date()
+})
 
-const card={
-id:"card_"+Date.now(),
-text:text,
-col:column
-}
-
-let cards=JSON.parse(localStorage.getItem("kanban")||"[]")
-
-cards.push(card)
-
-localStorage.setItem("kanban",JSON.stringify(cards))
-
-renderKanban()
+loadKanban()
 
 }
 
 
-function deleteCard(e){
+async function deleteCard(id){
 
 if(!confirm("카드를 삭제할까요?")) return
 
-const id=e.target.id
+await db.collection("kanban").doc(id).delete()
 
-let cards=JSON.parse(localStorage.getItem("kanban")||"[]")
-
-cards=cards.filter(c=>c.id!==id)
-
-localStorage.setItem("kanban",JSON.stringify(cards))
-
-renderKanban()
+loadKanban()
 
 }
 
 
-function renderKanban(){
-
-const cards=JSON.parse(localStorage.getItem("kanban")||"[]")
+async function loadKanban(){
 
 document.querySelectorAll(".card").forEach(c=>c.remove())
 
-cards.forEach(card=>{
+const snapshot=await db.collection("kanban").get()
 
-const column=document.querySelector(`[data-col="${card.col}"]`)
+snapshot.forEach(doc=>{
 
-const c=document.createElement("div")
+const d=doc.data()
 
-c.className="card"
-c.innerText=card.text
-c.id=card.id
-c.draggable=true
-c.ondragstart=drag
-c.ondblclick=deleteCard
+const column=document.querySelector(`[data-col="${d.col}"]`)
 
-column.appendChild(c)
+const card=document.createElement("div")
+
+card.className="card"
+card.innerText=d.text
+card.id=doc.id
+card.draggable=true
+
+card.ondragstart=drag
+card.ondblclick=()=>deleteCard(doc.id)
+
+column.appendChild(card)
 
 })
 
@@ -490,14 +419,9 @@ column.appendChild(c)
 /* 초기 로드 */
 
 loadNotes()
-
-studyData=JSON.parse(localStorage.getItem("studyData")||"[]")
-
-renderChart()
-renderKanban()
+loadKanban()
 
 </script>
 
 </body>
 </html>
-
